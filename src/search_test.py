@@ -20,7 +20,7 @@ client = weaviate.connect_to_custom(
     grpc_secure=False,  # Whether to use a secure channel for the gRPC API connection
     auth_credentials=Auth.api_key(weaviate_api_key),  # API key for authentication
 )
-collection = client.collections.get("Audit")
+collection = client.collections.get("tiangong")
 
 
 ## colletion total chunk count
