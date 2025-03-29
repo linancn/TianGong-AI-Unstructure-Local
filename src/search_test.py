@@ -20,7 +20,7 @@ client = weaviate.connect_to_custom(
     grpc_secure=False,  # Whether to use a secure channel for the gRPC API connection
     auth_credentials=Auth.api_key(weaviate_api_key),  # API key for authentication
 )
-collection = client.collections.get("tiangong")
+collection = client.collections.get("audit")
 
 
 ## colletion total chunk count
@@ -47,16 +47,22 @@ def get_adjacent_chunks_from_weaviate(
 
     # 用于存储每个文档的 chunk
     doc_chunks = defaultdict(list)
+    # 用于存储每个文档的 source（优先取最早出现结果的 source）
+    doc_sources = {}
     added_chunks = set()
 
     # 解析 original_search_results 中每个 chunk
     for result in original_search_results:
-        content = result.properties["content"]
-        doc_chunk_id = result.properties["doc_chunk_id"]
+        properties = result.properties
+        content = properties["content"]
+        doc_chunk_id = properties["doc_chunk_id"]
         doc_uuid, chunk_id_str = doc_chunk_id.split("_")
         chunk_id = int(chunk_id_str)
+        
+        if doc_uuid not in doc_sources and "source" in properties:
+            doc_sources[doc_uuid] = properties["source"]
 
-        # 添加当前 chunk 到文档的 chunk 列表中，如果 (doc_uuid, chunk_id) 不存在重复
+        # 添加当前 chunk 到文档的 chunk 列表中
         if (doc_uuid, chunk_id) not in added_chunks:
             doc_chunks[doc_uuid].append((chunk_id, content))
             added_chunks.add((doc_uuid, chunk_id))
@@ -64,16 +70,21 @@ def get_adjacent_chunks_from_weaviate(
         # 检索前 k 个相邻 chunk
         if k_before:
             for i in range(1, k_before + 1):
-                if chunk_id - i >= 0 and (doc_uuid, chunk_id - i) not in added_chunks:
+                target_chunk = chunk_id - i
+                if target_chunk >= 0 and (doc_uuid, target_chunk) not in added_chunks:
                     before_response = collection.query.fetch_objects(
                         filters=Filter.by_property("doc_chunk_id").equal(
-                            f"{doc_uuid}_{chunk_id - i}"
+                            f"{doc_uuid}_{target_chunk}"
                         ),
                     )
                     if before_response.objects:
-                        before_chunk = before_response.objects[0].properties["content"]
-                        doc_chunks[doc_uuid].append((chunk_id - i, before_chunk))
-                        added_chunks.add((doc_uuid, chunk_id - i))
+                        before_obj = before_response.objects[0]
+                        before_content = before_obj.properties["content"]
+                        # 如未记录 source，则从相邻 chunk 中获取 source（假设同一 doc 的 source 一致）
+                        if doc_uuid not in doc_sources and "source" in before_obj.properties:
+                            doc_sources[doc_uuid] = before_obj.properties["source"]
+                        doc_chunks[doc_uuid].append((target_chunk, before_content))
+                        added_chunks.add((doc_uuid, target_chunk))
         
         # 检索后 k 个相邻 chunk
         total_chunk_count = collection.aggregate.over_all(
@@ -82,25 +93,34 @@ def get_adjacent_chunks_from_weaviate(
         ).total_count
         if k_after:
             for i in range(1, k_after + 1):
-                if (
-                    chunk_id + i <= total_chunk_count
-                    and (doc_uuid, chunk_id + i) not in added_chunks
-                ):
+                target_chunk = chunk_id + i
+                if target_chunk <= total_chunk_count and (doc_uuid, target_chunk) not in added_chunks:
                     after_response = collection.query.fetch_objects(
                         filters=Filter.by_property("doc_chunk_id").equal(
-                            f"{doc_uuid}_{chunk_id + i}"
+                            f"{doc_uuid}_{target_chunk}"
                         ),
                     )
                     if after_response.objects:
-                        after_chunk = after_response.objects[0].properties["content"]
-                        doc_chunks[doc_uuid].append((chunk_id + i, after_chunk))
-                        added_chunks.add((doc_uuid, chunk_id + i))
+                        after_obj = after_response.objects[0]
+                        after_content = after_obj.properties["content"]
+                        if doc_uuid not in doc_sources and "source" in after_obj.properties:
+                            doc_sources[doc_uuid] = after_obj.properties["source"]
+                        doc_chunks[doc_uuid].append((target_chunk, after_content))
+                        added_chunks.add((doc_uuid, target_chunk))
 
-    # 对每个 doc 的 chunk 列表按 chunk_id 进行排序，并确保 chunk_id 和 content 保持配对
+    # 对每个 doc 的 chunk 列表按 chunk_id 进行排序
     for doc_uuid in doc_chunks:
         doc_chunks[doc_uuid].sort(key=lambda x: x[0])
 
-    return doc_chunks
+    # 合并同一 doc 的 chunk content，并构造返回的列表
+    docs_list = []
+    for doc_uuid, chunks in doc_chunks.items():
+        # 这里按顺序拼接 chunk 的内容，可根据需要添加空格或换行符
+        combined_content = "".join(chunk_content for _, chunk_content in chunks)
+        source = doc_sources.get(doc_uuid, "")
+        docs_list.append({"content": combined_content, "source": source})
+    
+    return docs_list
 
 
 aa = get_adjacent_chunks_from_weaviate(hybrid_results.objects, k=4)
