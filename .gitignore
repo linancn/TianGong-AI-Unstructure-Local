@@ -147,3 +147,4 @@ dmypy.json
 .pytype/
 law/
 docker/weaviate_data/
+audit_files/

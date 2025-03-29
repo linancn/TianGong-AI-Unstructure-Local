@@ -35,9 +35,19 @@ client = weaviate.connect_to_custom(
     # auth_credentials=Auth.api_key(weaviate_api_key),  # API key for authentication
 )
 
-collection = client.collections.get(name="tiangong")
+collection = client.collections.get(name="audit")
 
-path = "law/test.ris"
+# root_dir = "audit_files"
+# ris_files = []
+# for subdir, dirs, files in os.walk(root_dir):
+#     for file in files:
+#         if file.endswith(".ris"):
+#             file_path = os.path.join(subdir, file)
+#             ris_files.append(file_path)
+
+# for path in ris_files:
+
+path="law/test.ris"
 
 # 设置读取ris文件的根目录
 root = path.rsplit("/", 1)[0] + "/"
@@ -65,14 +75,20 @@ for index, row in df_ris.iterrows():
     path_without_pdf = path.replace(".pdf", "")
     pickle_path = f"{path_without_pdf}.pkl"
 
-    with open(pickle_path, "rb") as f:
-        text_list = pickle.load(f)
-        text_list = [item["text"] for item in text_list]
+    try:
+        with open(pickle_path, "rb") as f:
+            text_list = pickle.load(f)
+            text_list = [item for item in text_list if item is not None]
+            text_list = [item["text"] for item in text_list]
 
-    data = merge_pickle_list(text_list)
-    data = fix_utf8(data)
-    id = str(uuid.uuid4())
-    chunks = split_chunks(id=id, text_list=data, source=source)
+        data = merge_pickle_list(text_list)
+        data = fix_utf8(data)
+        id = str(uuid.uuid4())
+        chunks = split_chunks(id=id, text_list=data, source=source)
+    except Exception as e:
+        logging.error(f"Error reading pickle file {pickle_path}: {e}")
+        continue
 
     collection.data.insert_many(chunks)
     logging.info(f"Inserted {path}")
+client.close()
