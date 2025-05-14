@@ -19,7 +19,7 @@ client = weaviate.connect_to_custom(
     grpc_host=grpc_host,
     grpc_port=grpc_port,
     grpc_secure=False,
-    auth_credentials=Auth.api_key(weaviate_api_key),
+    # auth_credentials=Auth.api_key(weaviate_api_key),
 )
 
 # if client.collections.exists(name="tiangong"):
