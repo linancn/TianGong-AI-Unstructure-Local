@@ -148,3 +148,4 @@ dmypy.json
 law/
 docker/weaviate_data/
 audit_files/
+bistu/
