@@ -9,7 +9,7 @@ import uuid
 from tools.text_to_weaviate import merge_pickle_list, fix_utf8, split_chunks
 
 logging.basicConfig(
-    filename="weaviate_bistu.log",
+    filename="weaviate_aibook.log",
     filemode="w",
     level=logging.INFO,
     format="%(asctime)s:%(levelname)s:%(message)s",
@@ -43,10 +43,10 @@ def split_chunks(doc_id, text_list, source):
         })
     return chunks
 
-collection = client.collections.get(name="bistu")
+collection = client.collections.get(name="aibook")
 
 # Set the root directory for pickle files
-pickle_root = "bistu/pickles/2023"
+pickle_root = "temp"
 
 # Recursively walk through all directories and find pickle files
 for root, _, files in os.walk(pickle_root):
@@ -73,7 +73,11 @@ for root, _, files in os.walk(pickle_root):
                 logging.error(f"Error reading pickle file {pickle_path}: {e}")
                 continue
 
-            collection.data.insert_many(chunks)
-            logging.info(f"Inserted {pickle_path}")
+            # 分批插入，每批最多200条
+            batch_size = 200
+            for i in range(0, len(chunks), batch_size):
+                batch = chunks[i:i+batch_size]
+                collection.data.insert_many(batch)
+                logging.info(f"Inserted batch {i//batch_size + 1} for {pickle_path}")
 
 client.close()

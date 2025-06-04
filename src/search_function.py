@@ -20,7 +20,7 @@ client = weaviate.connect_to_custom(
     grpc_secure=False,  # Whether to use a secure channel for the gRPC API connection
     auth_credentials=Auth.api_key(weaviate_api_key),  # API key for authentication
 )
-collection = client.collections.get("audit")
+collection = client.collections.get("aibook")
 
 
 def hybrid_search_with_context(query, topK=3, extK=0):
@@ -55,6 +55,7 @@ def hybrid_search_with_context(query, topK=3, extK=0):
     doc_chunks = defaultdict(list)
     doc_sources = {}
     added_chunks = set()
+    doc_chunk_ids = defaultdict(set)  # 新增：每个doc_uuid下已添加的chunk_id集合
     chunks_to_fetch = []
 
     # Process search results
@@ -70,7 +71,9 @@ def hybrid_search_with_context(query, topK=3, extK=0):
             doc_sources[doc_uuid] = properties["source"]
 
         # Add current chunk
-        doc_chunks[doc_uuid].append((chunk_id, content))
+        if chunk_id not in doc_chunk_ids[doc_uuid]:  # 去重
+            doc_chunks[doc_uuid].append((chunk_id, content))
+            doc_chunk_ids[doc_uuid].add(chunk_id)
         added_chunks.add((doc_uuid, chunk_id))
 
         # Get total chunk count for this document
@@ -101,9 +104,11 @@ def hybrid_search_with_context(query, topK=3, extK=0):
         if response.objects:
             obj = response.objects[0]
             content = obj.properties["content"]
+            if chunk_id not in doc_chunk_ids[doc_uuid]:  # 去重
+                doc_chunks[doc_uuid].append((chunk_id, content))
+                doc_chunk_ids[doc_uuid].add(chunk_id)
             if "source" in obj.properties and doc_uuid not in doc_sources:
                 doc_sources[doc_uuid] = obj.properties["source"]
-            doc_chunks[doc_uuid].append((chunk_id, content))
     
     # Process results into final format
     docs_list = []
@@ -119,9 +124,9 @@ def hybrid_search_with_context(query, topK=3, extK=0):
 
 # Example usage of the new combined function
 search_results = hybrid_search_with_context(
-    query="税务人员在核定应纳税额时应回避的人员", 
+    query="透明性及可解释性是什么", 
     topK=3,
-    extK=1
+    extK=2
 )
 
 print(search_results)
