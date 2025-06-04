@@ -23,9 +23,9 @@ client = weaviate.connect_to_custom(
     auth_credentials=Auth.api_key(weaviate_api_key),
 )
 
-if not client.collections.exists(name="tiangong"):
+if not client.collections.exists(name="aibook"):
     collection = client.collections.create(
-        name="tiangong",
+        name="aibook",
         properties=[
             Property(
                 name="content",

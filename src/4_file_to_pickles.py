@@ -21,9 +21,11 @@ def unstructure_by_service(doc_path, url, token):
         with open(pickle_path, 'wb') as pkl_file:
             pickle.dump(result, pkl_file)
 
-dir_path = 'test'
+dir_path = 'AI'
 
-pdf_url = 'http://localhost:8770/pdf'
+# pdf_url = 'http://localhost:8770/pdf'
+# pdf_url = 'http://thuenv.tiangong.world:7770/mineru'
+pdf_url = 'http://192.168.8.1:7770/mineru'
 docx_url = 'http://localhost:8770/docx'
 ppt_url = 'http://localhost:8770/ppt'
 

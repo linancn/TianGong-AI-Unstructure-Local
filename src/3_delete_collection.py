@@ -22,9 +22,9 @@ client = weaviate.connect_to_custom(
     # auth_credentials=Auth.api_key(weaviate_api_key),
 )
 
-# if client.collections.exists(name="tiangong"):
-#     client.collections.delete(name="audit")
-#     print(f"Collection deleted")
-client.collections.delete_all()
+if client.collections.exists(name="aibook"):
+    client.collections.delete(name="aibook")
+    print(f"Collection deleted")
+# client.collections.delete_all()
 
 client.close()
