@@ -27,7 +27,7 @@ services:
       ENABLE_TOKENIZER_GSE: 'true'
       CLUSTER_HOSTNAME: 'node1'
   t2v-transformers:
-    image: cr.weaviate.io/semitechnologies/transformers-inference:baai-bge-m3-onnx
+    image: cr.weaviate.io/semitechnologies/transformers-inference:google-flan-t5-large
     environment:
       ENABLE_CUDA: '1'
       NVIDIA_VISIBLE_DEVICES: 'all'
