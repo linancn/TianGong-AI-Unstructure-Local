@@ -7,7 +7,7 @@ services:
     - '8080'
     - --scheme
     - http
-    image: cr.weaviate.io/semitechnologies/weaviate:1.31.2
+    image: semitechnologies/weaviate:latest
     ports:
     - 8080:8080
     - 50051:50051
@@ -27,7 +27,7 @@ services:
       ENABLE_TOKENIZER_GSE: 'true'
       CLUSTER_HOSTNAME: 'node1'
   t2v-transformers:
-    image: cr.weaviate.io/semitechnologies/transformers-inference:google-flan-t5-large
+    image: semitechnologies/transformers-inference:sentence-transformers-gtr-t5-large-latest
     environment:
       ENABLE_CUDA: '1'
       NVIDIA_VISIBLE_DEVICES: 'all'
