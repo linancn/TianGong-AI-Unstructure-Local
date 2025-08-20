@@ -27,7 +27,7 @@ services:
       ENABLE_TOKENIZER_GSE: 'true'
       CLUSTER_HOSTNAME: 'node1'
   t2v-transformers:
-    image: semitechnologies/transformers-inference:sentence-transformers-gtr-t5-large-latest
+    image: cr.weaviate.io/semitechnologies/transformers-inference:snowflake-snowflake-arctic-embed-l
     environment:
       ENABLE_CUDA: '1'
       NVIDIA_VISIBLE_DEVICES: 'all'
